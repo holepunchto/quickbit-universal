@@ -63,6 +63,8 @@ exports.lastIndexOf = function lastIndexOf (field, value, position = field.byteL
 
 exports.Index = class Index {
   constructor (field) {
+    if (field.byteLength > 1 << 18) throw new RangeError('Field is too large to index')
+
     this.field = field
   }
 
