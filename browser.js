@@ -1,4 +1,6 @@
 const get = exports.get = function get (field, bit) {
+  if (bit < 0 || bit >= field.byteLength * 8) throw new RangeError('Out of bounds')
+
   const n = field.BYTES_PER_ELEMENT * 8
 
   const offset = bit & (n - 1)
@@ -8,6 +10,8 @@ const get = exports.get = function get (field, bit) {
 }
 
 exports.set = function set (field, bit, value = true) {
+  if (bit < 0 || bit >= field.byteLength * 8) throw new RangeError('Out of bounds')
+
   const n = field.BYTES_PER_ELEMENT * 8
 
   const offset = bit & (n - 1)
@@ -30,6 +34,8 @@ exports.indexOf = function indexOf (field, value, position = 0) {
     position = 0
   }
 
+  if (position < 0 || position >= field.byteLength * 8) throw new RangeError('Out of bounds')
+
   value = !!value
 
   for (let i = position, n = field.byteLength * 8; i < n; i++) {
@@ -44,6 +50,8 @@ exports.lastIndexOf = function lastIndexOf (field, value, position = field.byteL
     position = field.byteLength * 8 - 1
   }
 
+  if (position < 0 || position >= field.byteLength * 8) throw new RangeError('Out of bounds')
+
   value = !!value
 
   for (let i = position; i >= 0; i--) {
@@ -53,4 +61,12 @@ exports.lastIndexOf = function lastIndexOf (field, value, position = field.byteL
   return -1
 }
 
-exports.Index = class Index {}
+exports.Index = class Index {
+  constructor (field) {
+    this.field = field
+  }
+
+  update (bit) {
+    if (bit < 0 || bit >= this.field.byteLength * 8) throw new RangeError('Out of bounds')
+  }
+}
