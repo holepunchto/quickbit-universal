@@ -1,14 +1,14 @@
-const browser = require('./browser')
+const fallback = require('./fallback')
 
 try {
-  const native = require('quickbit-native')
+  const native = require('./native')
 
-  exports.get = browser.get
-  exports.set = browser.set
+  exports.get = fallback.get
+  exports.set = fallback.set
 
   exports.indexOf = native.indexOf
   exports.lastIndexOf = native.lastIndexOf
   exports.Index = native.Index
 } catch {
-  module.exports = browser
+  module.exports = fallback
 }

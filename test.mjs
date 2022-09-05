@@ -1,7 +1,7 @@
 import test from 'brittle'
 import b4a from 'b4a'
 
-import { get, set, indexOf, Index } from './browser.js'
+import { get, set, indexOf, Index } from './fallback.js'
 
 test('get', (t) => {
   const field = b4a.alloc(1)

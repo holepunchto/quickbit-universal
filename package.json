@@ -4,14 +4,17 @@
   "description": "Universal wrapper for libquickbit with a JavaScript fallback",
   "main": "index.js",
   "files": [
-    "browser.js",
-    "index.js"
+    "fallback.js",
+    "index.js",
+    "native/index.js",
+    "native/prebuilds"
   ],
   "browser": {
-    "./index.js": "./browser.js"
+    "./index.js": "./fallback.js"
   },
   "scripts": {
-    "test": "standard && brittle test.mjs"
+    "test": "standard && brittle test.mjs",
+    "prebuild": "prebuildify --napi --cwd native"
   },
   "repository": {
     "type": "git",
@@ -24,11 +27,13 @@
   },
   "homepage": "https://github.com/holepunchto/quickbit-universal#readme",
   "dependencies": {
-    "quickbit-native": "^1.0.0"
+    "node-gyp-build": "^4.5.0"
   },
   "devDependencies": {
     "b4a": "^1.6.0",
-    "brittle": "^2.3.1",
+    "brittle": "^3.1.0",
+    "napi-macros": "^2.0.0",
+    "prebuildify": "^5.0.1",
     "standard": "^17.0.0"
   }
 }
