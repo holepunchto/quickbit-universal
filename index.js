@@ -1,7 +1,7 @@
 const browser = require('./browser')
 
 try {
-  const native = require('field-native')
+  const native = require('quickbit-native')
 
   exports.get = browser.get
   exports.set = browser.set

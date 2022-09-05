@@ -1,9 +1,9 @@
-# field-universal
+# quickbit-universal
 
-Universal wrapper for https://github.com/holepunchto/libfield with a JavaScript fallback.
+Universal wrapper for https://github.com/holepunchto/libquickbit with a JavaScript fallback.
 
 ```sh
-npm install field-universal
+npm install quickbit-universal
 ```
 
 ## License
