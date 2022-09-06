@@ -29,6 +29,48 @@ exports.set = function set (field, bit, value = true) {
   return true
 }
 
+exports.fill = function fill (field, value, start = 0, end = field.byteLength * 8) {
+  if (start < 0 || start >= field.byteLength * 8 || start > end) throw new RangeError('Out of bounds')
+
+  const n = field.BYTES_PER_ELEMENT * 8
+  const m = end - start
+
+  let i, j
+
+  {
+    const offset = start & (n - 1)
+    i = (start - offset) / n
+
+    if (offset !== 0) {
+      let shift = n - offset
+      if (m < shift) shift = m
+
+      const mask = ((1 << shift) - 1) << offset
+
+      if (value) field[i] |= mask
+      else field[i] &= ~mask
+
+      i++
+    }
+  }
+
+  {
+    const offset = end & (n - 1)
+    j = (end - offset) / n
+
+    if (offset !== 0 && j >= i) {
+      const mask = (1 << offset) - 1
+
+      if (value) field[j] |= mask
+      else field[j] &= ~mask
+    }
+  }
+
+  if (i < j) field.fill(value ? (1 << n) - 1 : 0, i, j)
+
+  return field
+}
+
 exports.indexOf = function indexOf (field, value, position = 0) {
   if (typeof position === 'object') {
     position = 0

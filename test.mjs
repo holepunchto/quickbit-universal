@@ -1,7 +1,7 @@
 import test from 'brittle'
 import b4a from 'b4a'
 
-import { get, set, indexOf, Index } from './fallback.js'
+import { get, set, fill, indexOf, Index } from './fallback.js'
 
 test('get', (t) => {
   const field = b4a.alloc(1)
@@ -15,6 +15,13 @@ test('set', (t) => {
 
   t.is(set(field, 7), true)
   t.is(field[0], 0b10000000)
+})
+
+test('fill', (t) => {
+  const field = b4a.alloc(4)
+
+  fill(field, true, 4, 28)
+  t.alike([...field], [0xf0, 0xff, 0xff, 0x0f])
 })
 
 test('indexOf', (t) => {

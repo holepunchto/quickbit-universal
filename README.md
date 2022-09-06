@@ -33,6 +33,10 @@ Get the given bit, which will either be `true` (set) or `false` (unset).
 
 Set the given bit to `value`, which defaults to `true`. Returns `true` if the bit changed, otherwise `false`.
 
+#### `field = fill(field, value[, start[, end]])`
+
+Fill the given bit range with `value`. `start` defaults to `0` and `end` defaults to the bit length of the field. Returns the modified field.
+
 #### `const i = indexOf(field, value[, position][, index])`
 
 Return the index of the first occurrence of `value`, or `-1` if not found. If `position` is given, return the first index that is greater than or equal to `position`. An `index` may be passed to improve performance.
