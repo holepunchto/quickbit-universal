@@ -149,7 +149,7 @@ exports.lastIndexOf = function lastIndexOf (field, value, position = field.byteL
     while (i >= 0 && (index.handle, i)) {
       const bit = i * 16384
 
-      if (bit >= n || get(field, bit) === value) break
+      if (i === 0 || bit >= n || get(field, bit) === value) break
 
       i--
     }
@@ -162,7 +162,7 @@ exports.lastIndexOf = function lastIndexOf (field, value, position = field.byteL
     while (j >= 0 && get(index.handle, i * 128 + j + 128)) {
       const bit = k + j * 128
 
-      if (bit >= n || get(field, bit) === value) break
+      if (j === 0 || bit >= n || get(field, bit) === value) break
 
       j--
     }
