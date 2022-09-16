@@ -1,6 +1,7 @@
 const simdle = require('simdle-universal')
 
 const get = exports.get = function get (field, bit) {
+  if (bit < 0) bit += field.byteLength * 8
   if (bit < 0 || bit >= field.byteLength * 8) throw new RangeError('Out of bounds')
 
   const n = field.BYTES_PER_ELEMENT * 8
@@ -12,6 +13,7 @@ const get = exports.get = function get (field, bit) {
 }
 
 const set = exports.set = function set (field, bit, value = true) {
+  if (bit < 0) bit += field.byteLength * 8
   if (bit < 0 || bit >= field.byteLength * 8) throw new RangeError('Out of bounds')
 
   const n = field.BYTES_PER_ELEMENT * 8
@@ -32,6 +34,8 @@ const set = exports.set = function set (field, bit, value = true) {
 }
 
 exports.fill = function fill (field, value, start = 0, end = field.byteLength * 8) {
+  if (start < 0) start += field.byteLength * 8
+  if (end < 0) end += field.byteLength * 8
   if (start < 0 || start >= field.byteLength * 8 || start > end) throw new RangeError('Out of bounds')
 
   const n = field.BYTES_PER_ELEMENT * 8
@@ -79,6 +83,7 @@ exports.indexOf = function indexOf (field, value, position = 0, index = null) {
     position = 0
   }
 
+  if (position < 0) position += field.byteLength * 8
   if (position < 0 || position >= field.byteLength * 8) throw new RangeError('Out of bounds')
 
   value = !!value
@@ -123,14 +128,49 @@ exports.indexOf = function indexOf (field, value, position = 0, index = null) {
   return -1
 }
 
-exports.lastIndexOf = function lastIndexOf (field, value, position = field.byteLength * 8 - 1) {
+exports.lastIndexOf = function lastIndexOf (field, value, position = field.byteLength * 8 - 1, index = null) {
   if (typeof position === 'object') {
+    index = position
     position = field.byteLength * 8 - 1
   }
 
+  if (position < 0) position += field.byteLength * 8
   if (position < 0 || position >= field.byteLength * 8) throw new RangeError('Out of bounds')
 
   value = !!value
+
+  const n = field.byteLength * 8
+
+  if (n === 0) return -1
+
+  if (index !== null) {
+    let i = Math.floor(position / 16384)
+
+    while (i >= 0 && (index.handle, i)) {
+      const bit = i * 16384
+
+      if (bit >= n || get(field, bit) === value) break
+
+      i--
+    }
+
+    const k = ((i + 1) * 16384) - 1
+    let j = 127
+
+    if (position < k) j = Math.floor((k - position) / 128)
+
+    while (j >= 0 && get(index.handle, i * 128 + j + 128)) {
+      const bit = k + j * 128
+
+      if (bit >= n || get(field, bit) === value) break
+
+      j--
+    }
+
+    const l = k + ((j + 1) * 128) - 1
+
+    if (l < position) position = l
+  }
 
   for (let i = position; i >= 0; i--) {
     if (get(field, i) === value) return i
@@ -171,6 +211,7 @@ exports.Index = class Index {
   }
 
   update (bit) {
+    if (bit < 0) bit += this.field.byteLength * 8
     if (bit < 0 || bit >= this.field.byteLength * 8) throw new RangeError('Out of bounds')
 
     const n = this.field.BYTES_PER_ELEMENT
