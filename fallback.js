@@ -188,6 +188,8 @@ exports.Index = class Index {
 
     const n = field.BYTES_PER_ELEMENT
 
+    const maxSum = n === 1 ? 0xffn * 16n : n === 2 ? 0xffffn * 8n : 0xffffffffffn * 4n
+
     for (let i = 0; i < 128; i++) {
       let allZeros = true
       let allOnes = true
@@ -200,10 +202,10 @@ exports.Index = class Index {
           sum = simdle.sum(this.field.subarray(offset / n, (offset + 16) / n))
         }
 
-        set(this.handle, i * 128 + 128 + j, sum === 0n || sum === 0xffn * 16n)
+        set(this.handle, i * 128 + 128 + j, sum === 0n || sum === maxSum)
 
         allZeros = allZeros && sum === 0n
-        allOnes = allOnes && sum === 0xffn * 16n
+        allOnes = allOnes && sum === maxSum
       }
 
       set(this.handle, i, allZeros || allOnes)
@@ -216,17 +218,41 @@ exports.Index = class Index {
 
     const n = this.field.BYTES_PER_ELEMENT
 
-    const i = Math.floor(bit / 16384)
+    const maxSum = n === 1 ? 0xffn * 16n : n === 2 ? 0xffffn * 8n : 0xffffffffn * 4n
+
     const j = Math.floor(bit / 128)
 
     const offset = (j * 16) / n
     const sum = simdle.sum(this.field.subarray(offset, offset + (16 / n)))
 
-    if (set(this.handle, 128 + j, sum === 0n || sum === 0xffn * 16n)) {
+    if (set(this.handle, 128 + j, sum === 0n || sum === maxSum)) {
+      const i = Math.floor(bit / 16384)
+
       const offset = (i * 16 + 16) / 4
       const sum = simdle.sum(this.handle.subarray(offset, offset + 4))
 
-      set(this.handle, i, sum === 0n || sum === 0xffn * 16n)
+      if (sum === 0xffffffffn * 4n) {
+        let allZeros = true
+        let allOnes = true
+
+        for (let j = 0; j < 128; j++) {
+          const offset = (i * 128 + j) * 16
+          let sum = -1
+
+          if (offset + 16 <= this.field.byteLength) {
+            sum = this.field[offset / n]
+          }
+
+          allZeros = allZeros && sum === 0
+          allOnes = allOnes && sum === (n === 1 ? 0xff : n === 2 ? 0xffff : 0xffffffff)
+
+          if (!allZeros && !allOnes) break
+        }
+
+        set(this.handle, i, allZeros || allOnes)
+      } else {
+        set(this.handle, i, false)
+      }
 
       return true
     }
