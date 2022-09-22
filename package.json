@@ -1,6 +1,6 @@
 {
   "name": "quickbit-universal",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Universal wrapper for libquickbit with a JavaScript fallback",
   "main": "index.js",
   "files": [
