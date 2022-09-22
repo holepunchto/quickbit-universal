@@ -98,7 +98,7 @@ exports.indexOf = function indexOf (field, value, position = 0, index = null) {
     while (i < 128 && get(index.handle, i)) {
       const bit = i * 16384
 
-      if (bit >= n || get(field, bit) === value) break
+      if (i === 127 || bit >= n || get(field, bit) === value) break
 
       i++
     }
@@ -111,7 +111,7 @@ exports.indexOf = function indexOf (field, value, position = 0, index = null) {
     while (j < 128 && get(index.handle, i * 128 + j + 128)) {
       const bit = k + j * 128
 
-      if (bit >= n || get(field, bit) === value) break
+      if (j === 127 || bit >= n || get(field, bit) === value) break
 
       j++
     }
