@@ -1,5 +1,7 @@
 const simdle = require('simdle-universal')
 
+const INDEX_LEN = (16 /* root */ + 128 * 16 /* children */) * 2
+
 const get = exports.get = function get (field, bit) {
   if (bit < 0) bit += field.byteLength * 8
   if (bit < 0 || bit >= field.byteLength * 8) throw new RangeError('Out of bounds')
@@ -77,6 +79,14 @@ exports.fill = function fill (field, value, start = 0, end = field.byteLength * 
   return field
 }
 
+function bitOffset (bit, offset) {
+  return !bit ? offset : (INDEX_LEN * 8 / 2) + offset
+}
+
+function byteOffset (bit, offset) {
+  return !bit ? offset : (INDEX_LEN / 2) + offset
+}
+
 exports.indexOf = function indexOf (field, value, position = 0, index = null) {
   if (typeof position === 'object') {
     index = position
@@ -95,11 +105,7 @@ exports.indexOf = function indexOf (field, value, position = 0, index = null) {
   if (index !== null) {
     let i = Math.floor(position / 16384)
 
-    while (i < 128 && get(index.handle, i)) {
-      const bit = i * 16384
-
-      if (i === 127 || bit >= n || get(field, bit) === value) break
-
+    while (i < 127 && get(index.handle, bitOffset(!value, i))) {
       i++
     }
 
@@ -108,11 +114,7 @@ exports.indexOf = function indexOf (field, value, position = 0, index = null) {
 
     if (position > k) j = Math.floor((position - k) / 128)
 
-    while (j < 128 && get(index.handle, i * 128 + j + 128)) {
-      const bit = k + j * 128
-
-      if (j === 127 || bit >= n || get(field, bit) === value) break
-
+    while (j < 127 && get(index.handle, bitOffset(!value, i * 128 + j + 128))) {
       j++
     }
 
@@ -146,11 +148,7 @@ exports.lastIndexOf = function lastIndexOf (field, value, position = field.byteL
   if (index !== null) {
     let i = Math.floor(position / 16384)
 
-    while (i >= 0 && (index.handle, i)) {
-      const bit = i * 16384
-
-      if (i === 0 || bit >= n || get(field, bit) === value) break
-
+    while (i > 0 && get(index.handle, bitOffset(!value, i))) {
       i--
     }
 
@@ -159,11 +157,7 @@ exports.lastIndexOf = function lastIndexOf (field, value, position = field.byteL
 
     if (position < k) j = Math.floor((k - position) / 128)
 
-    while (j >= 0 && get(index.handle, i * 128 + j + 128)) {
-      const bit = k + j * 128
-
-      if (j === 0 || bit >= n || get(field, bit) === value) break
-
+    while (j > 0 && get(index.handle, bitOffset(!value, i * 128 + j + 128))) {
       j--
     }
 
@@ -184,16 +178,13 @@ exports.Index = class Index {
     if (field.byteLength > 1 << 18) throw new RangeError('Field is too large to index')
 
     this.field = field
-    this.handle = new Uint32Array(516)
+    this.handle = new Uint32Array(INDEX_LEN / 4)
 
     const n = field.BYTES_PER_ELEMENT
 
     const maxSum = n === 1 ? 0xffn * 16n : n === 2 ? 0xffffn * 8n : 0xffffffffffn * 4n
 
     for (let i = 0; i < 128; i++) {
-      let allZeros = true
-      let allOnes = true
-
       for (let j = 0; j < 128; j++) {
         const offset = (i * 128 + j) * 16
         let sum = -1n
@@ -202,13 +193,26 @@ exports.Index = class Index {
           sum = simdle.sum(this.field.subarray(offset / n, (offset + 16) / n))
         }
 
-        set(this.handle, i * 128 + 128 + j, sum === 0n || sum === maxSum)
+        const k = i * 128 + 128 + j
 
-        allZeros = allZeros && sum === 0n
-        allOnes = allOnes && sum === maxSum
+        set(this.handle, bitOffset(false, k), sum === 0n)
+
+        set(this.handle, bitOffset(true, k), sum === maxSum)
       }
 
-      set(this.handle, i, allZeros || allOnes)
+      {
+        const offset = byteOffset(false, i * 16 + 16) / 4
+        const sum = simdle.sum(this.handle.subarray(offset, offset + 4))
+
+        set(this.handle, bitOffset(false, i), sum === 0xffffffffn * 4n)
+      }
+
+      {
+        const offset = byteOffset(true, i * 16 + 16) / 4
+        const sum = simdle.sum(this.handle.subarray(offset, offset + 4))
+
+        set(this.handle, bitOffset(true, i), sum === 0xffffffffn * 4n)
+      }
     }
   }
 
@@ -218,45 +222,32 @@ exports.Index = class Index {
 
     const n = this.field.BYTES_PER_ELEMENT
 
-    const maxSum = n === 1 ? 0xffn * 16n : n === 2 ? 0xffffn * 8n : 0xffffffffn * 4n
-
+    const i = Math.floor(bit / 16384)
     const j = Math.floor(bit / 128)
 
     const offset = (j * 16) / n
     const sum = simdle.sum(this.field.subarray(offset, offset + (16 / n)))
 
-    if (set(this.handle, 128 + j, sum === 0n || sum === maxSum)) {
-      const i = Math.floor(bit / 16384)
+    let changed = false
 
-      const offset = (i * 16 + 16) / 4
+    if (set(this.handle, bitOffset(false, 128 + j), sum === 0n)) {
+      changed = true
+
+      const offset = byteOffset(false, i * 16 + 16) / 4
       const sum = simdle.sum(this.handle.subarray(offset, offset + 4))
 
-      if (sum === 0xffffffffn * 4n) {
-        let allZeros = true
-        let allOnes = true
-
-        for (let j = 0; j < 128; j++) {
-          const offset = (i * 128 + j) * 16
-          let sum = -1
-
-          if (offset + 16 <= this.field.byteLength) {
-            sum = this.field[offset / n]
-          }
-
-          allZeros = allZeros && sum === 0
-          allOnes = allOnes && sum === (n === 1 ? 0xff : n === 2 ? 0xffff : 0xffffffff)
-
-          if (!allZeros && !allOnes) break
-        }
-
-        set(this.handle, i, allZeros || allOnes)
-      } else {
-        set(this.handle, i, false)
-      }
-
-      return true
+      set(this.handle, bitOffset(false, i), sum === 0xffffffffn * 4n)
     }
 
-    return false
+    if (set(this.handle, bitOffset(true, 128 + j), sum === 0n)) {
+      changed = true
+
+      const offset = byteOffset(true, i * 16 + 16) / 4
+      const sum = simdle.sum(this.handle.subarray(offset, offset + 4))
+
+      set(this.handle, bitOffset(true, i), sum === 0xffffffffn * 4n)
+    }
+
+    return changed
   }
 }

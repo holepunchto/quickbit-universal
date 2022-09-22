@@ -5,16 +5,27 @@ import { get, set, fill, indexOf, Index } from './fallback.js'
 
 test('get', (t) => {
   const field = b4a.alloc(1)
-  field[0] = 0b10000000
 
+  field[0] = 0xff
+  t.is(get(field, 0), true)
+  t.is(get(field, 7), true)
+
+  field[0] = 0xfe
+  t.is(get(field, 0), false)
   t.is(get(field, 7), true)
 })
 
 test('set', (t) => {
   const field = b4a.alloc(1)
+  field[0] = 0xfe
 
-  t.is(set(field, 7), true)
-  t.is(field[0], 0b10000000)
+  t.is(set(field, 0), true)
+  t.is(field[0], 0xff)
+
+  t.is(set(field, 0), false)
+
+  t.is(set(field, 0, false), true)
+  t.is(field[0], 0xfe)
 })
 
 test('fill', (t) => {
@@ -29,6 +40,9 @@ test('indexOf', (t) => {
   field[100000] = 1
 
   t.is(indexOf(field, true), 800000)
+  t.is(indexOf(field, true, 800000), 800000)
+  t.is(indexOf(field, true, 800001), -1)
+  t.is(indexOf(field, true, -1), -1)
 })
 
 test('indexOf + index', (t) => {
@@ -38,4 +52,7 @@ test('indexOf + index', (t) => {
   const index = new Index(field)
 
   t.is(indexOf(field, true, index), 800000)
+  t.is(indexOf(field, true, 800000, index), 800000)
+  t.is(indexOf(field, true, 800001, index), -1)
+  t.is(indexOf(field, true, -1, index), -1)
 })
