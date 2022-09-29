@@ -3,25 +3,29 @@ const simdle = require('simdle-universal')
 const INDEX_LEN = (16 /* root */ + 128 * 16 /* children */) * 2
 
 const get = exports.get = function get (field, bit) {
-  if (bit < 0) bit += field.byteLength * 8
-  if (bit < 0 || bit >= field.byteLength * 8) throw new RangeError('Out of bounds')
+  const n = field.byteLength * 8
 
-  const n = field.BYTES_PER_ELEMENT * 8
+  if (bit < 0) bit += n
+  if (bit < 0 || bit >= n) return false
 
-  const offset = bit & (n - 1)
-  const i = (bit - offset) / n
+  const m = field.BYTES_PER_ELEMENT * 8
+
+  const offset = bit & (m - 1)
+  const i = (bit - offset) / m
 
   return (field[i] & (1 << offset)) !== 0
 }
 
 const set = exports.set = function set (field, bit, value = true) {
-  if (bit < 0) bit += field.byteLength * 8
-  if (bit < 0 || bit >= field.byteLength * 8) throw new RangeError('Out of bounds')
+  const n = field.byteLength * 8
 
-  const n = field.BYTES_PER_ELEMENT * 8
+  if (bit < 0) bit += n
+  if (bit < 0 || bit >= n) return false
 
-  const offset = bit & (n - 1)
-  const i = (bit - offset) / n
+  const m = field.BYTES_PER_ELEMENT * 8
+
+  const offset = bit & (m - 1)
+  const i = (bit - offset) / m
   const mask = 1 << offset
 
   if (value) {
@@ -36,22 +40,23 @@ const set = exports.set = function set (field, bit, value = true) {
 }
 
 exports.fill = function fill (field, value, start = 0, end = field.byteLength * 8) {
-  if (start < 0) start += field.byteLength * 8
-  if (end < 0) end += field.byteLength * 8
-  if (start < 0 || start >= field.byteLength * 8 || start > end) throw new RangeError('Out of bounds')
+  const n = field.byteLength * 8
 
-  const n = field.BYTES_PER_ELEMENT * 8
-  const m = end - start
+  if (start < 0) start += n
+  if (end < 0) end += n
+  if (start < 0 || start >= field.byteLength * 8 || start >= end) return field
+
+  const m = field.BYTES_PER_ELEMENT * 8
 
   let i, j
 
   {
-    const offset = start & (n - 1)
-    i = (start - offset) / n
+    const offset = start & (m - 1)
+    i = (start - offset) / m
 
     if (offset !== 0) {
-      let shift = n - offset
-      if (m < shift) shift = m
+      let shift = m - offset
+      if (end - start < shift) shift = end - start
 
       const mask = ((1 << shift) - 1) << offset
 
@@ -63,8 +68,8 @@ exports.fill = function fill (field, value, start = 0, end = field.byteLength * 
   }
 
   {
-    const offset = end & (n - 1)
-    j = (end - offset) / n
+    const offset = end & (m - 1)
+    j = (end - offset) / m
 
     if (offset !== 0 && j >= i) {
       const mask = (1 << offset) - 1
@@ -74,7 +79,7 @@ exports.fill = function fill (field, value, start = 0, end = field.byteLength * 
     }
   }
 
-  if (i < j) field.fill(value ? (1 << n) - 1 : 0, i, j)
+  if (i < j) field.fill(value ? (1 << m) - 1 : 0, i, j)
 
   return field
 }
@@ -87,41 +92,14 @@ function byteOffset (bit, offset) {
   return !bit ? offset : (INDEX_LEN / 2) + offset
 }
 
-exports.indexOf = function indexOf (field, value, position = 0, index = null) {
-  if (typeof position === 'object') {
-    index = position
-    position = 0
-  }
-
-  if (position < 0) position += field.byteLength * 8
-  if (position < 0 || position >= field.byteLength * 8) throw new RangeError('Out of bounds')
-
-  value = !!value
-
+exports.findFirst = function findFirst (field, value, position = 0) {
   const n = field.byteLength * 8
 
-  if (n === 0) return -1
+  if (position < 0) position += n
+  if (position < 0) position = 0
+  if (position >= n) return -1
 
-  if (index !== null) {
-    let i = Math.floor(position / 16384)
-
-    while (i < 127 && get(index.handle, bitOffset(!value, i))) {
-      i++
-    }
-
-    const k = i * 16384
-    let j = 0
-
-    if (position > k) j = Math.floor((position - k) / 128)
-
-    while (j < 127 && get(index.handle, bitOffset(!value, i * 128 + j + 128))) {
-      j++
-    }
-
-    const l = k + j * 128
-
-    if (l > position) position = l
-  }
+  value = !!value
 
   for (let i = position; i < n; i++) {
     if (get(field, i) === value) return i
@@ -130,41 +108,14 @@ exports.indexOf = function indexOf (field, value, position = 0, index = null) {
   return -1
 }
 
-exports.lastIndexOf = function lastIndexOf (field, value, position = field.byteLength * 8 - 1, index = null) {
-  if (typeof position === 'object') {
-    index = position
-    position = field.byteLength * 8 - 1
-  }
-
-  if (position < 0) position += field.byteLength * 8
-  if (position < 0 || position >= field.byteLength * 8) throw new RangeError('Out of bounds')
-
-  value = !!value
-
+exports.findLast = function findLast (field, value, position = field.byteLength * 8 - 1) {
   const n = field.byteLength * 8
 
-  if (n === 0) return -1
+  if (position < 0) position += n
+  if (position < 0) return -1
+  if (position >= n) position = n - 1
 
-  if (index !== null) {
-    let i = Math.floor(position / 16384)
-
-    while (i > 0 && get(index.handle, bitOffset(!value, i))) {
-      i--
-    }
-
-    const k = ((i + 1) * 16384) - 1
-    let j = 127
-
-    if (position < k) j = Math.floor((k - position) / 128)
-
-    while (j > 0 && get(index.handle, bitOffset(!value, i * 128 + j + 128))) {
-      j--
-    }
-
-    const l = k + ((j + 1) * 128) - 1
-
-    if (l < position) position = l
-  }
+  value = !!value
 
   for (let i = position; i >= 0; i--) {
     if (get(field, i) === value) return i
@@ -249,5 +200,71 @@ exports.Index = class Index {
     }
 
     return changed
+  }
+
+  skipFirst (value, position = 0) {
+    const n = this.field.byteLength * 8
+
+    if (position < 0) position += n
+    if (position < 0) position = 0
+    if (position >= n) return n - 1
+
+    let i = Math.floor(position / 16384)
+
+    while (i <= 127 && get(this.handle, bitOffset(value, i))) {
+      i++
+    }
+
+    if (i === 128) return n - 1
+
+    const k = i * 16384
+    let j = 0
+
+    if (position > k) j = Math.floor((position - k) / 128)
+
+    while (j <= 127 && get(this.handle, bitOffset(value, i * 128 + j + 128))) {
+      j++
+    }
+
+    if (j === 128) return n - 1
+
+    const l = k + j * 128
+
+    if (l > position) position = l
+
+    return position < n ? position : n - 1
+  }
+
+  skipLast (value, position = this.field.byteLength * 8 - 1) {
+    const n = this.field.byteLength * 8
+
+    if (position < 0) position += n
+    if (position < 0) return 0
+    if (position >= n) position = n - 1
+
+    let i = Math.floor(position / 16384)
+
+    while (i >= 0 && get(this.handle, bitOffset(value, i))) {
+      i--
+    }
+
+    if (i === -1) return 0
+
+    const k = ((i + 1) * 16384) - 1
+    let j = 127
+
+    if (position < k) j = Math.floor((k - position) / 128)
+
+    while (j >= 0 && get(this.handle, bitOffset(value, i * 128 + j + 128))) {
+      j--
+    }
+
+    if (j === -1) return 0
+
+    const l = k + ((j + 1) * 128) - 1
+
+    if (l < position) position = l
+
+    return position
   }
 }

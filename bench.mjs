@@ -84,42 +84,81 @@ test('index.update', async (t) => {
   })
 })
 
-test('indexOf', async (t) => {
-  const { indexOf, Index } = await import('./fallback.js')
-
+test('findFirst', async (t) => {
   const field = new Uint32Array(1 << 16)
   field[25000] = 1
 
-  await t.test('with index', async (t) => {
-    const ops = 1000
-    const index = new Index(field)
+  await t.test('native', async (t) => {
+    const { findFirst, Index } = await import('./index.js')
 
-    let r
+    await t.test('with index', async (t) => {
+      const ops = 10000000
+      const index = new Index(field)
 
-    const elapsed = await t.execution(() => {
-      for (let i = 0; i < ops; i++) {
-        r = indexOf(field, 1, index)
-      }
+      let r
+
+      const elapsed = await t.execution(() => {
+        for (let i = 0; i < ops; i++) {
+          r = findFirst(field, true, index.skipFirst(false))
+        }
+      })
+
+      t.is(r, 800000)
+
+      t.comment(Math.round(ops / elapsed * 1e3) + ' ops/s')
     })
 
-    t.is(r, 800000)
+    await t.test('without index', async (t) => {
+      const ops = 1000
 
-    t.comment(Math.round(ops / elapsed * 1e3) + ' ops/s')
+      let r
+
+      const elapsed = await t.execution(() => {
+        for (let i = 0; i < ops; i++) {
+          r = findFirst(field, true)
+        }
+      })
+
+      t.is(r, 800000)
+
+      t.comment(Math.round(ops / elapsed * 1e3) + ' ops/s')
+    })
   })
 
-  await t.test('without index', async (t) => {
-    const ops = 100
+  await t.test('javascript', async (t) => {
+    const { findFirst, Index } = await import('./fallback.js')
 
-    let r
+    await t.test('with index', async (t) => {
+      const ops = 1000
+      const index = new Index(field)
 
-    const elapsed = await t.execution(() => {
-      for (let i = 0; i < ops; i++) {
-        r = indexOf(field, 1)
-      }
+      let r
+
+      const elapsed = await t.execution(() => {
+        for (let i = 0; i < ops; i++) {
+          r = findFirst(field, true, index.skipFirst(false))
+        }
+      })
+
+      t.is(r, 800000)
+
+      t.comment(Math.round(ops / elapsed * 1e3) + ' ops/s')
     })
 
-    t.is(r, 800000)
+    await t.test('without index', async (t) => {
+      const ops = 100
 
-    t.comment(Math.round(ops / elapsed * 1e3) + ' ops/s')
+      let r
+
+      const elapsed = await t.execution(() => {
+        for (let i = 0; i < ops; i++) {
+          r = findFirst(field, true)
+        }
+      })
+
+      t.is(r, 800000)
+
+      t.comment(Math.round(ops / elapsed * 1e3) + ' ops/s')
+    })
   })
 })

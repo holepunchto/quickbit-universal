@@ -9,7 +9,7 @@ npm install quickbit-universal
 ## Usage
 
 ```js
-const { get, set, indexOf } = require('quickbit-native')
+const { get, set, findFirst } = require('quickbit-native')
 
 const field = Buffer.alloc(256) // 2048 bits
 
@@ -19,7 +19,7 @@ const changed = set(field, 1000)
 get(field, 1000)
 // true
 
-indexOf(field, true)
+findFirst(field, true)
 // 1000
 ```
 
@@ -37,13 +37,13 @@ Set the given bit to `value`, which defaults to `true`. Returns `true` if the bi
 
 Fill the given bit range with `value`. `start` defaults to `0` and `end` defaults to the bit length of the field. Returns the modified field.
 
-#### `const i = indexOf(field, value[, position][, index])`
+#### `const i = findFirst(field, value[, position])`
 
-Return the index of the first occurrence of `value`, or `-1` if not found. If `position` is given, return the first index that is greater than or equal to `position`. An `index` may be passed to improve performance.
+Return the index of the first occurrence of `value`, or `-1` if not found. If `position` is given, return the first index that is greater than or equal to `position`.
 
-#### `const i = lastIndexOf(field, value[, position][, index])`
+#### `const i = findLast(field, value[, position])`
 
-Return the index of the last occurrence of `value`, or `-1` if not found. If `position` is given, return the last index that is less than or equal to `position`. An `index` may be passed to improve performance.
+Return the index of the last occurrence of `value`, or `-1` if not found. If `position` is given, return the last index that is less than or equal to `position`.
 
 ### Indexing
 
@@ -54,6 +54,14 @@ Construct an index of the bits in `field`.
 #### `const changed = index.update(bit)`
 
 Reindex the given bit.
+
+#### `const position = index.skipFirst(value[, position])`
+
+Skip the first parts of the index that contain nothing but `value`. If the index contains *only* `value`, the last index of the field is returned.
+
+#### `const position = index.skipLast(value[, position])`
+
+Skip the last parts of the index that contain nothing but `value`. If the index contains *only* `value`, the first index of the field is returned.
 
 ## License
 

@@ -7,8 +7,8 @@ try {
   exports.set = fallback.set
   exports.fill = fallback.fill
 
-  exports.indexOf = native.indexOf
-  exports.lastIndexOf = native.lastIndexOf
+  exports.findFirst = native.findFirst
+  exports.findLast = native.findLast
   exports.Index = native.Index
 } catch {
   module.exports = fallback
