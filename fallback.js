@@ -124,24 +124,104 @@ exports.findLast = function findLast (field, value, position = field.byteLength 
   return -1
 }
 
-exports.Index = class Index {
-  constructor (field) {
-    if (field.byteLength > 1 << 18) throw new RangeError('Field is too large to index')
+const Index = exports.Index = class Index {
+  static from (fieldOrChunks) {
+    if (Array.isArray(fieldOrChunks)) {
+      return new SparseIndex(fieldOrChunks)
+    } else {
+      return new DenseIndex(fieldOrChunks)
+    }
+  }
 
-    this.field = field
+  get byteLength () {
+    return 0
+  }
+
+  constructor () {
     this.handle = new Uint32Array(INDEX_LEN / 4)
+  }
 
-    const n = field.BYTES_PER_ELEMENT
+  skipFirst (value, position = 0) {
+    const n = this.field.byteLength * 8
 
-    const maxSum = n === 1 ? 0xffn * 16n : n === 2 ? 0xffffn * 8n : 0xffffffffffn * 4n
+    if (position < 0) position += n
+    if (position < 0) position = 0
+    if (position >= n) return n - 1
+
+    let i = Math.floor(position / 16384)
+
+    while (i <= 127 && get(this.handle, bitOffset(value, i))) {
+      i++
+    }
+
+    if (i === 128) return n - 1
+
+    let k = i * 16384
+    let j = 0
+
+    if (position > k) j = Math.floor((position - k) / 128)
+
+    while (j <= 127 && get(this.handle, bitOffset(value, i * 128 + j + 128))) {
+      j++
+      k += 128
+    }
+
+    if (j === 128 && i !== 127) return this.skipFirst(value, (i + 1) * 16384)
+
+    if (k > position) position = k
+
+    return position < n ? position : n - 1
+  }
+
+  skipLast (value, position = this.field.byteLength * 8 - 1) {
+    const n = this.field.byteLength * 8
+
+    if (position < 0) position += n
+    if (position < 0) return 0
+    if (position >= n) position = n - 1
+
+    let i = Math.floor(position / 16384)
+
+    while (i >= 0 && get(this.handle, bitOffset(value, i))) {
+      i--
+    }
+
+    if (i === -1) return 0
+
+    let k = ((i + 1) * 16384) - 1
+    let j = 127
+
+    if (position < k) j = Math.floor((k - position) / 128)
+
+    while (j >= 0 && get(this.handle, bitOffset(value, i * 128 + j + 128))) {
+      j--
+      k -= 128
+    }
+
+    if (j === -1 && i !== 0) return this.skipLast(value, i * 16384 - 1)
+
+    if (k < position) position = k
+
+    return position
+  }
+}
+
+class DenseIndex extends Index {
+  constructor (field) {
+    super()
+    this.field = field
+
+    const m = field.BYTES_PER_ELEMENT
+
+    const maxSum = m === 1 ? 0xffn * 16n : m === 2 ? 0xffffn * 8n : 0xffffffffffn * 4n
 
     for (let i = 0; i < 128; i++) {
       for (let j = 0; j < 128; j++) {
         const offset = (i * 128 + j) * 16
-        let sum = -1n
+        let sum = 0n
 
         if (offset + 16 <= this.field.byteLength) {
-          sum = simdle.sum(this.field.subarray(offset / n, (offset + 16) / n))
+          sum = simdle.sum(this.field.subarray(offset / m, (offset + 16) / m))
         }
 
         const k = i * 128 + 128 + j
@@ -167,17 +247,23 @@ exports.Index = class Index {
     }
   }
 
-  update (bit) {
-    if (bit < 0) bit += this.field.byteLength * 8
-    if (bit < 0 || bit >= this.field.byteLength * 8) throw new RangeError('Out of bounds')
+  get byteLength () {
+    return this.field.byteLength
+  }
 
-    const n = this.field.BYTES_PER_ELEMENT
+  update (bit) {
+    const n = this.field.byteLength * 8
+
+    if (bit < 0) bit += n
+    if (bit < 0 || bit >= n) return false
+
+    const m = this.field.BYTES_PER_ELEMENT
 
     const i = Math.floor(bit / 16384)
     const j = Math.floor(bit / 128)
 
-    const offset = (j * 16) / n
-    const sum = simdle.sum(this.field.subarray(offset, offset + (16 / n)))
+    const offset = (j * 16) / m
+    const sum = simdle.sum(this.field.subarray(offset, offset + (16 / m)))
 
     let changed = false
 
@@ -201,70 +287,112 @@ exports.Index = class Index {
 
     return changed
   }
+}
 
-  skipFirst (value, position = 0) {
-    const n = this.field.byteLength * 8
+function selectChunk (chunks, offset) {
+  for (let i = 0; i < chunks.length; i++) {
+    const next = chunks[i]
 
-    if (position < 0) position += n
-    if (position < 0) position = 0
-    if (position >= n) return n - 1
-
-    let i = Math.floor(position / 16384)
-
-    while (i <= 127 && get(this.handle, bitOffset(value, i))) {
-      i++
+    if (offset >= next.offset && offset + 16 <= next.offset + next.field.byteLength) {
+      return next
     }
-
-    if (i === 128) return n - 1
-
-    const k = i * 16384
-    let j = 0
-
-    if (position > k) j = Math.floor((position - k) / 128)
-
-    while (j <= 127 && get(this.handle, bitOffset(value, i * 128 + j + 128))) {
-      j++
-    }
-
-    if (j === 128) return n - 1
-
-    const l = k + j * 128
-
-    if (l > position) position = l
-
-    return position < n ? position : n - 1
   }
 
-  skipLast (value, position = this.field.byteLength * 8 - 1) {
-    const n = this.field.byteLength * 8
+  return null
+}
 
-    if (position < 0) position += n
-    if (position < 0) return 0
-    if (position >= n) position = n - 1
+class SparseIndex extends Index {
+  constructor (chunks) {
+    super()
+    this.chunks = chunks
 
-    let i = Math.floor(position / 16384)
+    for (let i = 0; i < 128; i++) {
+      for (let j = 0; j < 128; j++) {
+        const offset = (i * 128 + j) * 16
+        let sum = 0n
+        let maxSum = -1n
 
-    while (i >= 0 && get(this.handle, bitOffset(value, i))) {
-      i--
+        const chunk = selectChunk(this.chunks, offset)
+
+        if (chunk !== null) {
+          const m = chunk.field.BYTES_PER_ELEMENT
+
+          maxSum = m === 1 ? 0xffn * 16n : m === 2 ? 0xffffn * 8n : 0xffffffffffn * 4n
+
+          sum = simdle.sum(chunk.field.subarray((offset - chunk.offset) / m, (offset - chunk.offset + 16) / m))
+        }
+
+        const k = i * 128 + 128 + j
+
+        set(this.handle, bitOffset(false, k), sum === 0n)
+
+        set(this.handle, bitOffset(true, k), sum === maxSum)
+      }
+
+      {
+        const offset = byteOffset(false, i * 16 + 16) / 4
+        const sum = simdle.sum(this.handle.subarray(offset, offset + 4))
+
+        set(this.handle, bitOffset(false, i), sum === 0xffffffffn * 4n)
+      }
+
+      {
+        const offset = byteOffset(true, i * 16 + 16) / 4
+        const sum = simdle.sum(this.handle.subarray(offset, offset + 4))
+
+        set(this.handle, bitOffset(true, i), sum === 0xffffffffn * 4n)
+      }
+    }
+  }
+
+  get byteLength () {
+    const last = this.chunks[this.chunks.length - 1]
+    return last ? last.offset + last.field.byteLength : 0
+  }
+
+  update (bit) {
+    if (this.chunks.length === 0) return false
+
+    const last = this.chunks[this.chunks.length - 1]
+
+    const n = (last.offset + last.field.byteLength) * 8
+
+    if (bit < 0) bit += n
+    if (bit < 0 || bit >= n) return false
+
+    const i = Math.floor(bit / 16384)
+    const j = Math.floor(bit / 128)
+
+    const offset = j * 16
+
+    const chunk = selectChunk(this.chunks, offset)
+
+    if (chunk === null) return false
+
+    const m = chunk.field.BYTES_PER_ELEMENT
+
+    const sum = simdle.sum(chunk.field.subarray((offset - chunk.offset) / m, (offset - chunk.offset + 16) / m))
+
+    let changed = false
+
+    if (set(this.handle, bitOffset(false, 128 + j), sum === 0n)) {
+      changed = true
+
+      const offset = byteOffset(false, i * 16 + 16) / 4
+      const sum = simdle.sum(this.handle.subarray(offset, offset + 4))
+
+      set(this.handle, bitOffset(false, i), sum === 0xffffffffn * 4n)
     }
 
-    if (i === -1) return 0
+    if (set(this.handle, bitOffset(true, 128 + j), sum === 0n)) {
+      changed = true
 
-    const k = ((i + 1) * 16384) - 1
-    let j = 127
+      const offset = byteOffset(true, i * 16 + 16) / 4
+      const sum = simdle.sum(this.handle.subarray(offset, offset + 4))
 
-    if (position < k) j = Math.floor((k - position) / 128)
-
-    while (j >= 0 && get(this.handle, bitOffset(value, i * 128 + j + 128))) {
-      j--
+      set(this.handle, bitOffset(true, i), sum === 0xffffffffn * 4n)
     }
 
-    if (j === -1) return 0
-
-    const l = k + ((j + 1) * 128) - 1
-
-    if (l < position) position = l
-
-    return position
+    return changed
   }
 }

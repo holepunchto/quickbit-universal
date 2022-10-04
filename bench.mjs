@@ -1,6 +1,6 @@
 import test from 'brittle'
 
-test('new Index', async (t) => {
+test('Index.from', async (t) => {
   const field = new Uint32Array(1 << 16)
   field[25000] = 1
 
@@ -13,7 +13,7 @@ test('new Index', async (t) => {
 
     const elapsed = await t.execution(() => {
       for (let i = 0; i < ops; i++) {
-        r = new Index(field)
+        r = Index.from(field)
       }
     })
 
@@ -31,7 +31,7 @@ test('new Index', async (t) => {
 
     const elapsed = await t.execution(() => {
       for (let i = 0; i < ops; i++) {
-        r = new Index(field)
+        r = Index.from(field)
       }
     })
 
@@ -50,7 +50,7 @@ test('index.update', async (t) => {
   await t.test('native', async (t) => {
     const { Index } = await import('./index.js')
 
-    const index = new Index(field)
+    const index = Index.from(field)
 
     let r
 
@@ -68,7 +68,7 @@ test('index.update', async (t) => {
   await t.test('javascript', async (t) => {
     const { Index } = await import('./fallback.js')
 
-    const index = new Index(field)
+    const index = Index.from(field)
 
     let r
 
@@ -92,8 +92,8 @@ test('findFirst', async (t) => {
     const { findFirst, Index } = await import('./index.js')
 
     await t.test('with index', async (t) => {
-      const ops = 10000000
-      const index = new Index(field)
+      const ops = 1000000
+      const index = Index.from(field)
 
       let r
 
@@ -109,7 +109,7 @@ test('findFirst', async (t) => {
     })
 
     await t.test('without index', async (t) => {
-      const ops = 1000
+      const ops = 100000
 
       let r
 
@@ -129,8 +129,8 @@ test('findFirst', async (t) => {
     const { findFirst, Index } = await import('./fallback.js')
 
     await t.test('with index', async (t) => {
-      const ops = 1000
-      const index = new Index(field)
+      const ops = 1000000
+      const index = Index.from(field)
 
       let r
 

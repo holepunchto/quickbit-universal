@@ -47,13 +47,13 @@ Return the index of the last occurrence of `value`, or `-1` if not found. If `po
 
 ### Indexing
 
-#### `const index = new Index(field)`
+#### `const index = Index.from(fieldOrChunks)`
 
-Construct an index of the bits in `field`.
+Construct an index of the bits in a bit field or an array of sparse `{ field, offset }` chunks.
 
 #### `const changed = index.update(bit)`
 
-Reindex the given bit.
+Update the given bit in the index.
 
 #### `const position = index.skipFirst(value[, position])`
 
