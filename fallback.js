@@ -79,7 +79,7 @@ exports.fill = function fill (field, value, start = 0, end = field.byteLength * 
     }
   }
 
-  if (i < j) field.fill(value ? (1 << m) - 1 : 0, i, j)
+  if (i < j) field.fill(value ? (2 ** m) - 1 : 0, i, j)
 
   return field
 }
