@@ -150,6 +150,8 @@ const Index = exports.Index = class Index {
 
     let i = Math.floor(position / 16384)
 
+    if (i > 127) return position
+
     while (i <= 127 && get(this.handle, bitOffset(value, i))) {
       i++
     }
@@ -181,6 +183,8 @@ const Index = exports.Index = class Index {
     if (position >= n) position = n - 1
 
     let i = Math.floor(position / 16384)
+
+    if (i > 127) return position
 
     while (i >= 0 && get(this.handle, bitOffset(value, i))) {
       i--
@@ -293,7 +297,10 @@ function selectChunk (chunks, offset) {
   for (let i = 0; i < chunks.length; i++) {
     const next = chunks[i]
 
-    if (offset >= next.offset && offset + 16 <= next.offset + next.field.byteLength) {
+    const start = next.offset
+    const end = next.offset + next.field.byteLength
+
+    if (offset >= start && offset + 16 <= end) {
       return next
     }
   }
