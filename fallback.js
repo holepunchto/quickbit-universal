@@ -217,36 +217,37 @@ class DenseIndex extends Index {
 
     const m = field.BYTES_PER_ELEMENT
 
-    const maxSum = m === 1 ? 0xffn * 16n : m === 2 ? 0xffffn * 8n : 0xffffffffffn * 4n
-
     for (let i = 0; i < 128; i++) {
       for (let j = 0; j < 128; j++) {
         const offset = (i * 128 + j) * 16
-        let sum = 0n
+        let allz = true
+        let allo = false
 
         if (offset + 16 <= this.field.byteLength) {
-          sum = simdle.sum(this.field.subarray(offset / m, (offset + 16) / m))
+          const vec = this.field.subarray(offset / m, (offset + 16) / m)
+
+          allz = simdle.allz(vec)
+          allo = simdle.allo(vec)
         }
 
         const k = i * 128 + 128 + j
 
-        set(this.handle, bitOffset(false, k), sum === 0n)
-
-        set(this.handle, bitOffset(true, k), sum === maxSum)
+        set(this.handle, bitOffset(false, k), allz)
+        set(this.handle, bitOffset(true, k), allo)
       }
 
       {
         const offset = byteOffset(false, i * 16 + 16) / 4
-        const sum = simdle.sum(this.handle.subarray(offset, offset + 4))
+        const allo = simdle.allo(this.handle.subarray(offset, offset + 4))
 
-        set(this.handle, bitOffset(false, i), sum === 0xffffffffn * 4n)
+        set(this.handle, bitOffset(false, i), allo)
       }
 
       {
         const offset = byteOffset(true, i * 16 + 16) / 4
-        const sum = simdle.sum(this.handle.subarray(offset, offset + 4))
+        const allo = simdle.allo(this.handle.subarray(offset, offset + 4))
 
-        set(this.handle, bitOffset(true, i), sum === 0xffffffffn * 4n)
+        set(this.handle, bitOffset(true, i), allo)
       }
     }
   }
@@ -267,26 +268,29 @@ class DenseIndex extends Index {
     const j = Math.floor(bit / 128)
 
     const offset = (j * 16) / m
-    const sum = simdle.sum(this.field.subarray(offset, offset + (16 / m)))
+    const vec = this.field.subarray(offset, offset + (16 / m))
+
+    const allz = simdle.allz(vec)
+    const allo = simdle.allo(vec)
 
     let changed = false
 
-    if (set(this.handle, bitOffset(false, 128 + j), sum === 0n)) {
+    if (set(this.handle, bitOffset(false, 128 + j), allz)) {
       changed = true
 
       const offset = byteOffset(false, i * 16 + 16) / 4
-      const sum = simdle.sum(this.handle.subarray(offset, offset + 4))
+      const allo = simdle.allo(this.handle.subarray(offset, offset + 4))
 
-      set(this.handle, bitOffset(false, i), sum === 0xffffffffn * 4n)
+      set(this.handle, bitOffset(false, i), allo)
     }
 
-    if (set(this.handle, bitOffset(true, 128 + j), sum === 0n)) {
+    if (set(this.handle, bitOffset(true, 128 + j), allo)) {
       changed = true
 
       const offset = byteOffset(true, i * 16 + 16) / 4
-      const sum = simdle.sum(this.handle.subarray(offset, offset + 4))
+      const allo = simdle.allo(this.handle.subarray(offset, offset + 4))
 
-      set(this.handle, bitOffset(true, i), sum === 0xffffffffn * 4n)
+      set(this.handle, bitOffset(true, i), allo)
     }
 
     return changed
@@ -316,38 +320,38 @@ class SparseIndex extends Index {
     for (let i = 0; i < 128; i++) {
       for (let j = 0; j < 128; j++) {
         const offset = (i * 128 + j) * 16
-        let sum = 0n
-        let maxSum = -1n
+        let allz = true
+        let allo = false
 
         const chunk = selectChunk(this.chunks, offset)
 
         if (chunk !== null) {
           const m = chunk.field.BYTES_PER_ELEMENT
 
-          maxSum = m === 1 ? 0xffn * 16n : m === 2 ? 0xffffn * 8n : 0xffffffffffn * 4n
+          const vec = chunk.field.subarray((offset - chunk.offset) / m, (offset - chunk.offset + 16) / m)
 
-          sum = simdle.sum(chunk.field.subarray((offset - chunk.offset) / m, (offset - chunk.offset + 16) / m))
+          allz = simdle.allz(vec)
+          allo = simdle.allo(vec)
         }
 
         const k = i * 128 + 128 + j
 
-        set(this.handle, bitOffset(false, k), sum === 0n)
-
-        set(this.handle, bitOffset(true, k), sum === maxSum)
+        set(this.handle, bitOffset(false, k), allz)
+        set(this.handle, bitOffset(true, k), allo)
       }
 
       {
         const offset = byteOffset(false, i * 16 + 16) / 4
-        const sum = simdle.sum(this.handle.subarray(offset, offset + 4))
+        const allo = simdle.allo(this.handle.subarray(offset, offset + 4))
 
-        set(this.handle, bitOffset(false, i), sum === 0xffffffffn * 4n)
+        set(this.handle, bitOffset(false, i), allo)
       }
 
       {
         const offset = byteOffset(true, i * 16 + 16) / 4
-        const sum = simdle.sum(this.handle.subarray(offset, offset + 4))
+        const allo = simdle.allo(this.handle.subarray(offset, offset + 4))
 
-        set(this.handle, bitOffset(true, i), sum === 0xffffffffn * 4n)
+        set(this.handle, bitOffset(true, i), allo)
       }
     }
   }
@@ -378,26 +382,29 @@ class SparseIndex extends Index {
 
     const m = chunk.field.BYTES_PER_ELEMENT
 
-    const sum = simdle.sum(chunk.field.subarray((offset - chunk.offset) / m, (offset - chunk.offset + 16) / m))
+    const vec = chunk.field.subarray((offset - chunk.offset) / m, (offset - chunk.offset + 16) / m)
+
+    const allz = simdle.allz(vec)
+    const allo = simdle.allo(vec)
 
     let changed = false
 
-    if (set(this.handle, bitOffset(false, 128 + j), sum === 0n)) {
+    if (set(this.handle, bitOffset(false, 128 + j), allz)) {
       changed = true
 
       const offset = byteOffset(false, i * 16 + 16) / 4
-      const sum = simdle.sum(this.handle.subarray(offset, offset + 4))
+      const allo = simdle.allo(this.handle.subarray(offset, offset + 4))
 
-      set(this.handle, bitOffset(false, i), sum === 0xffffffffn * 4n)
+      set(this.handle, bitOffset(false, i), allo)
     }
 
-    if (set(this.handle, bitOffset(true, 128 + j), sum === 0n)) {
+    if (set(this.handle, bitOffset(true, 128 + j), allo)) {
       changed = true
 
       const offset = byteOffset(true, i * 16 + 16) / 4
-      const sum = simdle.sum(this.handle.subarray(offset, offset + 4))
+      const allo = simdle.allo(this.handle.subarray(offset, offset + 4))
 
-      set(this.handle, bitOffset(true, i), sum === 0xffffffffn * 4n)
+      set(this.handle, bitOffset(true, i), allo)
     }
 
     return changed
