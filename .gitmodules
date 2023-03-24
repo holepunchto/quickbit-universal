@@ -1,3 +1,0 @@
-[submodule "native"]
-	path = native
-	url = git@github.com:holepunchto/quickbit-native.git

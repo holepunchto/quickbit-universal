@@ -1,7 +1,7 @@
 const fallback = require('./fallback')
 
 try {
-  const native = require('./native')
+  const native = require('quickbit-native')
 
   exports.get = fallback.get
   exports.set = fallback.set
