@@ -25,8 +25,10 @@
   "homepage": "https://github.com/holepunchto/quickbit-universal#readme",
   "dependencies": {
     "b4a": "^1.6.0",
-    "quickbit-native": "^2.0.3",
     "simdle-universal": "^1.1.0"
+  },
+  "optionalDependencies": {
+    "quickbit-native": "^2.0.3"
   },
   "devDependencies": {
     "brittle": "^3.1.0",
