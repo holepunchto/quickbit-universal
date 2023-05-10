@@ -125,24 +125,25 @@ exports.findLast = function findLast (field, value, position = field.byteLength 
 }
 
 const Index = exports.Index = class Index {
-  static from (fieldOrChunks) {
+  static from (fieldOrChunks, byteLength = -1) {
     if (Array.isArray(fieldOrChunks)) {
-      return new SparseIndex(fieldOrChunks)
+      return new SparseIndex(fieldOrChunks, byteLength)
     } else {
-      return new DenseIndex(fieldOrChunks)
+      return new DenseIndex(fieldOrChunks, byteLength)
     }
   }
 
-  get byteLength () {
-    return 0
-  }
-
-  constructor () {
+  constructor (byteLength) {
+    this._byteLength = byteLength
     this.handle = new Uint32Array(INDEX_LEN / 4)
   }
 
+  get byteLength () {
+    return this._byteLength
+  }
+
   skipFirst (value, position = 0) {
-    const n = this.field.byteLength * 8
+    const n = this.byteLength * 8
 
     if (position < 0) position += n
     if (position < 0) position = 0
@@ -175,8 +176,8 @@ const Index = exports.Index = class Index {
     return position < n ? position : n - 1
   }
 
-  skipLast (value, position = this.field.byteLength * 8 - 1) {
-    const n = this.field.byteLength * 8
+  skipLast (value, position = this.byteLength * 8 - 1) {
+    const n = this.byteLength * 8
 
     if (position < 0) position += n
     if (position < 0) return 0
@@ -211,8 +212,8 @@ const Index = exports.Index = class Index {
 }
 
 class DenseIndex extends Index {
-  constructor (field) {
-    super()
+  constructor (field, byteLength) {
+    super(byteLength)
     this.field = field
 
     const m = field.BYTES_PER_ELEMENT
@@ -253,11 +254,12 @@ class DenseIndex extends Index {
   }
 
   get byteLength () {
+    if (this._byteLength !== -1) return this._byteLength
     return this.field.byteLength
   }
 
   update (bit) {
-    const n = this.field.byteLength * 8
+    const n = this.byteLength * 8
 
     if (bit < 0) bit += n
     if (bit < 0 || bit >= n) return false
@@ -313,8 +315,8 @@ function selectChunk (chunks, offset) {
 }
 
 class SparseIndex extends Index {
-  constructor (chunks) {
-    super()
+  constructor (chunks, byteLength) {
+    super(byteLength)
     this.chunks = chunks
 
     for (let i = 0; i < 128; i++) {
@@ -357,16 +359,13 @@ class SparseIndex extends Index {
   }
 
   get byteLength () {
+    if (this._byteLength !== -1) return this._byteLength
     const last = this.chunks[this.chunks.length - 1]
     return last ? last.offset + last.field.byteLength : 0
   }
 
   update (bit) {
-    if (this.chunks.length === 0) return false
-
-    const last = this.chunks[this.chunks.length - 1]
-
-    const n = (last.offset + last.field.byteLength) * 8
+    const n = this.byteLength * 8
 
     if (bit < 0) bit += n
     if (bit < 0 || bit >= n) return false
