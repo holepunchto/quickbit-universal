@@ -1,5 +1,3 @@
-const fallback = require('./fallback')
-
 try {
   const native = require('quickbit-native')
 
@@ -11,5 +9,5 @@ try {
   exports.findLast = native.findLast
   exports.Index = native.Index
 } catch {
-  module.exports = fallback
+  module.exports = require('./fallback')
 }
