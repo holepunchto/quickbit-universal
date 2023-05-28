@@ -65,4 +65,4 @@ Skip the last parts of the index that contain nothing but `value`. If the index 
 
 ## License
 
-ISC
+Apache 2.0
