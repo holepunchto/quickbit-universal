@@ -196,7 +196,7 @@ const Index = exports.Index = class Index {
     let k = ((i + 1) * 16384) - 1
     let j = 127
 
-    if (position < k) j = 128 - Math.floor((k - position) / 128)
+    if (position < k) j = 128 - Math.ceil((k - position) / 128)
 
     while (j >= 0 && get(this.handle, bitOffset(value, i * 128 + j + 128))) {
       j--
