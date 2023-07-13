@@ -84,6 +84,37 @@ exports.fill = function fill (field, value, start = 0, end = field.byteLength * 
   return field
 }
 
+exports.clear = function clear (field, ...chunks) {
+  const n = field.byteLength
+
+  for (const chunk of chunks) {
+    if (chunk.offset >= n) continue
+
+    const m = chunk.field.byteLength
+
+    let i = chunk.offset
+    let j = 0
+
+    while (((i & 15) !== 0 || (j & 15) !== 0) && i < n && j < m) {
+      field[i] = field[i] & ~chunk.field[j]
+      i++
+      j++
+    }
+
+    if (i + 15 < n && j + 15 < m) {
+      const len = Math.min(n - (n & 15) - i, m - (m & 15) - j)
+
+      simdle.clear(field.subarray(i, i + len), chunk.field.subarray(j, j + len), field.subarray(i, i + len))
+    }
+
+    while (i < n && j < m) {
+      field[i] = field[i] & ~chunk.field[j]
+      i++
+      j++
+    }
+  }
+}
+
 function bitOffset (bit, offset) {
   return !bit ? offset : (INDEX_LEN * 8 / 2) + offset
 }

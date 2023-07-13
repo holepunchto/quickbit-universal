@@ -37,6 +37,10 @@ Set the given bit to `value`, which defaults to `true`. Returns `true` if the bi
 
 Fill the given bit range with `value`. `start` defaults to `0` and `end` defaults to the bit length of the field. Returns the modified field.
 
+#### `clear(field, chunk)`
+
+Clear the bits from `field` that are set in the `{ field, offset }` chunk.
+
 #### `const i = findFirst(field, value[, position])`
 
 Return the index of the first occurrence of `value`, or `-1` if not found. If `position` is given, return the first index that is greater than or equal to `position`.
