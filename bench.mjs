@@ -19,7 +19,7 @@ test('Index.from', async (t) => {
 
     t.ok(r)
 
-    t.comment(Math.round(ops / elapsed * 1e3) + ' ops/s')
+    t.comment(Math.round((ops / elapsed) * 1e3) + ' ops/s')
   })
 
   await t.test('javascript', async (t) => {
@@ -37,7 +37,7 @@ test('Index.from', async (t) => {
 
     t.ok(r)
 
-    t.comment(Math.round(ops / elapsed * 1e3) + ' ops/s')
+    t.comment(Math.round((ops / elapsed) * 1e3) + ' ops/s')
   })
 })
 
@@ -62,7 +62,7 @@ test('index.update', async (t) => {
 
     t.absent(r)
 
-    t.comment(Math.round(ops / elapsed * 1e3) + ' ops/s')
+    t.comment(Math.round((ops / elapsed) * 1e3) + ' ops/s')
   })
 
   await t.test('javascript', async (t) => {
@@ -80,7 +80,7 @@ test('index.update', async (t) => {
 
     t.absent(r)
 
-    t.comment(Math.round(ops / elapsed * 1e3) + ' ops/s')
+    t.comment(Math.round((ops / elapsed) * 1e3) + ' ops/s')
   })
 })
 
@@ -105,7 +105,7 @@ test('findFirst', async (t) => {
 
       t.is(r, 800000)
 
-      t.comment(Math.round(ops / elapsed * 1e3) + ' ops/s')
+      t.comment(Math.round((ops / elapsed) * 1e3) + ' ops/s')
     })
 
     await t.test('without index', async (t) => {
@@ -121,7 +121,7 @@ test('findFirst', async (t) => {
 
       t.is(r, 800000)
 
-      t.comment(Math.round(ops / elapsed * 1e3) + ' ops/s')
+      t.comment(Math.round((ops / elapsed) * 1e3) + ' ops/s')
     })
   })
 
@@ -142,7 +142,7 @@ test('findFirst', async (t) => {
 
       t.is(r, 800000)
 
-      t.comment(Math.round(ops / elapsed * 1e3) + ' ops/s')
+      t.comment(Math.round((ops / elapsed) * 1e3) + ' ops/s')
     })
 
     await t.test('without index', async (t) => {
@@ -158,7 +158,7 @@ test('findFirst', async (t) => {
 
       t.is(r, 800000)
 
-      t.comment(Math.round(ops / elapsed * 1e3) + ' ops/s')
+      t.comment(Math.round((ops / elapsed) * 1e3) + ' ops/s')
     })
   })
 })
