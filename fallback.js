@@ -1,8 +1,8 @@
 const simdle = require('simdle-universal')
 
-const INDEX_LEN = (16 /* root */ + 128 * 16 /* children */) * 2
+const INDEX_LEN = (16 /* root */ + 128 * 16) /* children */ * 2
 
-const get = exports.get = function get (field, bit) {
+const get = (exports.get = function get(field, bit) {
   const n = field.byteLength * 8
 
   if (bit < 0) bit += n
@@ -14,9 +14,9 @@ const get = exports.get = function get (field, bit) {
   const i = (bit - offset) / m
 
   return (field[i] & (1 << offset)) !== 0
-}
+})
 
-const set = exports.set = function set (field, bit, value = true) {
+const set = (exports.set = function set(field, bit, value = true) {
   const n = field.byteLength * 8
 
   if (bit < 0) bit += n
@@ -37,9 +37,14 @@ const set = exports.set = function set (field, bit, value = true) {
   field[i] ^= mask
 
   return true
-}
+})
 
-exports.fill = function fill (field, value, start = 0, end = field.byteLength * 8) {
+exports.fill = function fill(
+  field,
+  value,
+  start = 0,
+  end = field.byteLength * 8
+) {
   const n = field.byteLength * 8
 
   if (start < 0) start += n
@@ -79,12 +84,12 @@ exports.fill = function fill (field, value, start = 0, end = field.byteLength * 
     }
   }
 
-  if (i < j) field.fill(value ? (2 ** m) - 1 : 0, i, j)
+  if (i < j) field.fill(value ? 2 ** m - 1 : 0, i, j)
 
   return field
 }
 
-exports.clear = function clear (field, ...chunks) {
+exports.clear = function clear(field, ...chunks) {
   const n = field.byteLength
 
   for (const chunk of chunks) {
@@ -104,7 +109,11 @@ exports.clear = function clear (field, ...chunks) {
     if (i + 15 < n && j + 15 < m) {
       const len = Math.min(n - (n & 15) - i, m - (m & 15) - j)
 
-      simdle.clear(field.subarray(i, i + len), chunk.field.subarray(j, j + len), field.subarray(i, i + len))
+      simdle.clear(
+        field.subarray(i, i + len),
+        chunk.field.subarray(j, j + len),
+        field.subarray(i, i + len)
+      )
     }
 
     while (i < n && j < m) {
@@ -115,15 +124,15 @@ exports.clear = function clear (field, ...chunks) {
   }
 }
 
-function bitOffset (bit, offset) {
-  return !bit ? offset : (INDEX_LEN * 8 / 2) + offset
+function bitOffset(bit, offset) {
+  return !bit ? offset : (INDEX_LEN * 8) / 2 + offset
 }
 
-function byteOffset (bit, offset) {
-  return !bit ? offset : (INDEX_LEN / 2) + offset
+function byteOffset(bit, offset) {
+  return !bit ? offset : INDEX_LEN / 2 + offset
 }
 
-exports.findFirst = function findFirst (field, value, position = 0) {
+exports.findFirst = function findFirst(field, value, position = 0) {
   const n = field.byteLength * 8
 
   if (position < 0) position += n
@@ -139,7 +148,11 @@ exports.findFirst = function findFirst (field, value, position = 0) {
   return -1
 }
 
-exports.findLast = function findLast (field, value, position = field.byteLength * 8 - 1) {
+exports.findLast = function findLast(
+  field,
+  value,
+  position = field.byteLength * 8 - 1
+) {
   const n = field.byteLength * 8
 
   if (position < 0) position += n
@@ -155,8 +168,8 @@ exports.findLast = function findLast (field, value, position = field.byteLength 
   return -1
 }
 
-const Index = exports.Index = class Index {
-  static from (fieldOrChunks, byteLength = -1) {
+const Index = (exports.Index = class Index {
+  static from(fieldOrChunks, byteLength = -1) {
     if (Array.isArray(fieldOrChunks)) {
       return new SparseIndex(fieldOrChunks, byteLength)
     } else {
@@ -164,16 +177,16 @@ const Index = exports.Index = class Index {
     }
   }
 
-  constructor (byteLength) {
+  constructor(byteLength) {
     this._byteLength = byteLength
     this.handle = new Uint32Array(INDEX_LEN / 4)
   }
 
-  get byteLength () {
+  get byteLength() {
     return this._byteLength
   }
 
-  skipFirst (value, position = 0) {
+  skipFirst(value, position = 0) {
     const n = this.byteLength * 8
 
     if (position < 0) position += n
@@ -207,7 +220,7 @@ const Index = exports.Index = class Index {
     return position < n ? position : n - 1
   }
 
-  skipLast (value, position = this.byteLength * 8 - 1) {
+  skipLast(value, position = this.byteLength * 8 - 1) {
     const n = this.byteLength * 8
 
     if (position < 0) position += n
@@ -224,7 +237,7 @@ const Index = exports.Index = class Index {
 
     if (i === -1) return 0
 
-    let k = ((i + 1) * 16384) - 1
+    let k = (i + 1) * 16384 - 1
     let j = 127
 
     if (position < k) j = 128 - Math.ceil((k - position) / 128)
@@ -240,10 +253,10 @@ const Index = exports.Index = class Index {
 
     return position
   }
-}
+})
 
 class DenseIndex extends Index {
-  constructor (field, byteLength) {
+  constructor(field, byteLength) {
     super(byteLength)
     this.field = field
 
@@ -284,12 +297,12 @@ class DenseIndex extends Index {
     }
   }
 
-  get byteLength () {
+  get byteLength() {
     if (this._byteLength !== -1) return this._byteLength
     return this.field.byteLength
   }
 
-  update (bit) {
+  update(bit) {
     const n = this.byteLength * 8
 
     if (bit < 0) bit += n
@@ -301,7 +314,7 @@ class DenseIndex extends Index {
     const j = Math.floor(bit / 128)
 
     const offset = (j * 16) / m
-    const vec = this.field.subarray(offset, offset + (16 / m))
+    const vec = this.field.subarray(offset, offset + 16 / m)
 
     const allz = simdle.allz(vec)
     const allo = simdle.allo(vec)
@@ -330,7 +343,7 @@ class DenseIndex extends Index {
   }
 }
 
-function selectChunk (chunks, offset) {
+function selectChunk(chunks, offset) {
   for (let i = 0; i < chunks.length; i++) {
     const next = chunks[i]
 
@@ -346,7 +359,7 @@ function selectChunk (chunks, offset) {
 }
 
 class SparseIndex extends Index {
-  constructor (chunks, byteLength) {
+  constructor(chunks, byteLength) {
     super(byteLength)
     this.chunks = chunks
 
@@ -361,7 +374,10 @@ class SparseIndex extends Index {
         if (chunk !== null) {
           const m = chunk.field.BYTES_PER_ELEMENT
 
-          const vec = chunk.field.subarray((offset - chunk.offset) / m, (offset - chunk.offset + 16) / m)
+          const vec = chunk.field.subarray(
+            (offset - chunk.offset) / m,
+            (offset - chunk.offset + 16) / m
+          )
 
           allz = simdle.allz(vec)
           allo = simdle.allo(vec)
@@ -389,13 +405,13 @@ class SparseIndex extends Index {
     }
   }
 
-  get byteLength () {
+  get byteLength() {
     if (this._byteLength !== -1) return this._byteLength
     const last = this.chunks[this.chunks.length - 1]
     return last ? last.offset + last.field.byteLength : 0
   }
 
-  update (bit) {
+  update(bit) {
     const n = this.byteLength * 8
 
     if (bit < 0) bit += n
@@ -412,7 +428,10 @@ class SparseIndex extends Index {
 
     const m = chunk.field.BYTES_PER_ELEMENT
 
-    const vec = chunk.field.subarray((offset - chunk.offset) / m, (offset - chunk.offset + 16) / m)
+    const vec = chunk.field.subarray(
+      (offset - chunk.offset) / m,
+      (offset - chunk.offset + 16) / m
+    )
 
     const allz = simdle.allz(vec)
     const allo = simdle.allo(vec)
