@@ -39,12 +39,7 @@ const set = (exports.set = function set(field, bit, value = true) {
   return true
 })
 
-exports.fill = function fill(
-  field,
-  value,
-  start = 0,
-  end = field.byteLength * 8
-) {
+exports.fill = function fill(field, value, start = 0, end = field.byteLength * 8) {
   const n = field.byteLength * 8
 
   if (start < 0) start += n
@@ -148,11 +143,7 @@ exports.findFirst = function findFirst(field, value, position = 0) {
   return -1
 }
 
-exports.findLast = function findLast(
-  field,
-  value,
-  position = field.byteLength * 8 - 1
-) {
+exports.findLast = function findLast(field, value, position = field.byteLength * 8 - 1) {
   const n = field.byteLength * 8
 
   if (position < 0) position += n
@@ -428,10 +419,7 @@ class SparseIndex extends Index {
 
     const m = chunk.field.BYTES_PER_ELEMENT
 
-    const vec = chunk.field.subarray(
-      (offset - chunk.offset) / m,
-      (offset - chunk.offset + 16) / m
-    )
+    const vec = chunk.field.subarray((offset - chunk.offset) / m, (offset - chunk.offset + 16) / m)
 
     const allz = simdle.allz(vec)
     const allo = simdle.allo(vec)
